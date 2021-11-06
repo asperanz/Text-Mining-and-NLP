@@ -1,0 +1,220 @@
+---
+title: "Transcripts of TED talks"
+author: "Alessandro Speranza"
+date: "9/16/2021"
+output:
+  html_document:
+    keep_md: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+#text_mining
+#ggplot2
+#tidyverse
+
+[A-Quick-How-to-On-Labelling-Bar-Graphs-in-ggplot2.md]
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cash = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(curl)
+library(tidytext)
+library(ggrepel)
+library(ggalt)
+library(here)
+library(funModeling)
+```
+
+# Get data directly for Julia Silge repository on github (used this method)
+```{r get_data}
+ted_talks <- readRDS(gzcon(url("https://github.com/juliasilge/learntidytext/raw/master/data/ted_talks.rds")))
+
+# IMPORTANT!
+# 1. ted_talks.rds is a compressed file, so it's neccesary to decompress it using gzcon
+# 2. BE CAREFULL! Use the Download button url (dx-click on Download and then Copy link address) to retrieve data: https://github.com/juliasilge/learntidytext/raw/master/data/ted_talks.rds
+# NOT use the web page url where the file is located: https://github.com/juliasilge/learntidytext/blob/master/data/ted_talks.rds
+```
+
+# Get data from file sytem after having downloaded the rds file from github
+```{r get_data_alternative_options, eval = FALSE}
+
+# Using the here() package & readr::read_rds function (SUGGESTED)
+ted_talks2 <-readr::read_rds(here("SHI - Text mining with tidy data principles", "data", "ted_talks.rds"), refhook = NULL)
+
+# Using relative path (NOT SUGGESTED)
+ted_talks2 <-readRDS("./SHI - Text mining with tidy data principles/data/ted_talks.rds") # using readRDS
+ted_talks3 <-readr::read_rds("./SHI - Text mining with tidy data principles/data/ted_talks.rds", refhook = NULL) # using readr::read_rds
+```
+
+# Look at data
+```{r look_data}
+# glimpse `ted_talks` to see what is in the data set
+glimpse(ted_talks)
+```
+
+# How to tidy text data
+```{r unnest_tokens}
+tidy_talks <- ted_talks %>% 
+  unnest_tokens(word, text, token = "words") # word is the new field which contains the token (single word in this case)
+```
+
+# Tokenize to bigrams
+```{r tokenize_bigrams}
+ted_bigrams <- ted_talks %>% 
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+ted_bigrams
+```
+
+# Most common TED talk words
+```{r most_common_words}
+tidy_talks %>% 
+  count(word, sort = TRUE)
+```
+
+# Removing stop words
+```{r removing_stop_words}
+get_stopwords(language = "en", source = "snowball")
+
+# IMPORTANT: to see in the Console Greek characters digit:  Sys.setlocale("LC_ALL","Greek")
+# with this setting I can see English characters in the console as well.
+# To come back to the original settings digit: Sys.setlocale("LC_ALL","English")
+
+# To get stopwords in Greek
+# get_stopwords(language = "el", source = "stopwords-iso")
+
+tidy_talks %>% 
+  anti_join(get_stopwords()) %>% # anti_join works like the SQL MINUS and takes implicitly the column 'word' as key for the join
+  count()
+```
+
+# Visualize top words - Prepare data
+```{r visualize_top_words_prepare_data}
+tidy_talks %>%
+  # remove stop words
+  anti_join(get_stopwords()) %>%
+  count(word, sort = "TRUE")  %>%
+  slice_max(n, n = 20) %>% 
+  mutate(word = reorder(word, n)) %>% 
+  # put `n` on the x-axis and `word` on the y-axis
+  ggplot(aes(word, n)) +
+  geom_col()
+
+  
+# My version
+top_words <- tidy_talks %>%
+  # remove stop words
+  dplyr::anti_join(tidytext::get_stopwords()) %>%
+  # convert the word variable to factor and consider just the first 20 levels based on their occurrences
+  # "Other" is included at the end (21st level)
+  dplyr::mutate(word = forcats::fct_lump(word, n = 20)) %>%
+  # count the number of word occurrences
+  dplyr::count(word, sort =  TRUE) %>% 
+  # Reorder factor levels by number and then invert the order for plotting reasons
+  dplyr::mutate(word = forcats::fct_rev(forcats::fct_inorder(word))) %>%
+  # exclude the word "Other" (N.B. the level "Other" remains)
+  dplyr::filter(word != "Other")
+
+# count() lets you quickly count the unique values of one or more variables: df %>% count(a, b) is roughly equivalent to df %>% group_by(a, b) %>% summarise(n = n())
+
+glimpse(top_words)
+
+# factor levels()
+levels(top_words$word)
+
+# --->>>> Fare la versione con group by and summarise() e usare ungroup
+```
+
+# Visualize top words - Plotting data
+```{r visualize_top_words_plotting_data}
+
+# Top words using a barchart
+ggplot(top_words, aes(x = n, y = word)) +
+  geom_col(fill = 'steelblue') +
+  theme_minimal()
+
+
+# Top words using a lollipop
+ggplot(top_words, aes(x = n, y = word)) +
+  ggalt::geom_lollipop(horizontal = TRUE,
+                       point.colour = "steelblue",
+                       point.size = 5,
+                       color = "#2c3e50",
+                       size = 1) +
+  ggplot2::labs(x = "frequency", y = "words",
+       title = "Top 20 Words Ranking",
+       subtitle = "Most 20 common TED talk words",
+       caption = "Source: https://www.ted.com/talks") +
+  ggplot2::theme_minimal()
+
+# 1. mettere in grassetto gli axis lables, togliere le linee orizzonatali aggiungere totali | percentuali
+```
+
+# Compare TED talk vocabularies
+```{r compare_TED_talk_vocabularies}
+tidy_talks_compare <- tidy_talks %>%
+  filter(speaker %in% c("Jane Goodall", "Temple Grandin")) %>%
+  # remove stop words
+  anti_join(get_stopwords()) %>%
+  # count with two arguments
+  count(speaker, word) %>%
+  group_by(word) %>%
+  filter(sum(n) > 10) %>%
+  ungroup() %>%
+  pivot_wider(names_from = "speaker", values_from = "n", values_fill = 0) 
+
+
+# My version
+tidy_talks_compare <- tidy_talks %>%
+  filter(speaker %in% c("Jane Goodall", "Temple Grandin")) %>%
+  # remove stop words
+  anti_join(get_stopwords()) %>% 
+  # count(speaker, word) %>% 
+  group_by(word, speaker) %>%  
+  summarise(count = n()) %>%  #`summarise()` has grouped output by 'word'
+  # filter() again to only keep words spoken at least 10 times by both women
+  filter(sum(count) > 10) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = speaker, values_from = count, values_fill = 0)
+
+
+tidy_talks_compare2 <- tidy_talks %>%
+  filter(speaker %in% c("Jane Goodall", "Temple Grandin")) %>%
+  # remove stop words
+  anti_join(get_stopwords()) %>% 
+  # count(speaker, word) %>% 
+  group_by(speaker, word) %>% 
+  summarise(count = n(), .groups = "keep") %>%  #`summarise()` has grouped output by 'speaker' and 'word'  
+  # filter() to only keep words spoken more than 10 times by both women (ranking)
+  filter(sum(count) > 10) %>% 
+  arrange(word) %>% 
+  ungroup()
+# qui posso fare il barchart contrapposto con la parola in mezzo per fare vedere le differenze a colpo d'occhio
+
+glimpse(tidy_talks_compare)
+glimpse(tidy_talks_compare2)
+glimpse(tidy_talks_compare_final)
+
+identical(tidy_talks_compare, tidy_talks_compare2)
+
+# group_by() senza summarise() NON cambia la granularita' del dataset (rows and obs), ma cambia SOLO il grouping interno!
+# invece group_by() and summarise() insieme cambiano la granularita' del dataset (oltre che modificare il grouping interno)
+# ungroup() serve ad eliminare il grouping interno e deve essere SEMPRE messo dopo aver usato il group_by()
+```
+
+# Visualize vocabulary comparison
+```{r visualize_vocabulary_comparison}
+tidy_talks_compare %>% 
+  ggplot(aes(`Jane Goodall`, `Temple Grandin`)) +
+  geom_abline(color = "gray50", size = 1, alpha = 0.8, lty = 2) +
+  # use the special ggrepel geom for nicer text plotting
+  geom_text_repel(aes(label = word)) +
+  coord_fixed()
+```
+
