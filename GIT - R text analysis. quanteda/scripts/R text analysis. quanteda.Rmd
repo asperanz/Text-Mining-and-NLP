@@ -1,0 +1,66 @@
+---
+title: "R text analysis: quanteda"
+author: "Alessandro Speranza"
+date: "11/13/2021"
+output:
+  html_document:
+    keep_md: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+#text_mining
+#quanteda
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cash = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(quanteda)
+library(quanteda.textplots)
+library(quanteda.textstats)
+library(readtext)
+```
+
+# Step 1: Importing text and creating a quanteda corpus
+
+## From CSV files
+```{r}
+# Get data
+url <- 'https://raw.githubusercontent.com/ccs-amsterdam/r-course-material/master/miscellaneous/sotu_per_paragraph.csv'
+
+d <- readr::read_csv(url)
+
+head(d)
+
+
+# Create a quanteda corpus
+corp <- corpus(d, text_field = "text")
+
+# Explore the doc variables (docvars are the remaining fields, except the field text, of the original dataframe)
+corp_docvars <- docvars(corp)
+```
+
+## From text (or word/pdf) files
+```{r}
+# Get data
+url2 <- "https://github.com/ccs-amsterdam/r-course-material/blob/master/data/files.zip?raw=true"
+
+texts <- readtext(url2)
+
+# Create a quanteda corpus
+corp2 <- corpus(texts)
+```
+
+
+# Step 2: Creating the DTM (or DFM)
+```{r}
+text2 <- tokens(corp2)
+```
+
+
