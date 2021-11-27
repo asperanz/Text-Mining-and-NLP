@@ -23,16 +23,21 @@ library(tidyverse)
 library(here)
 library(pdftools)
 library(stringr)
+library(downloader)
+library(readtext)
 ```
 
 # Get the pdf document using pdftools
 ```{r get_pdf_doc}
 
 # Download from the web the pdf document
-utils::download.file("https://github.com/Huitziii/crispy-pdf/raw/master/71_PV.62.pdf", here("ART - How to Extract and Clean Data From PDF Files in R", "data", "71_PV.62.pdf"), mode = "wb")
+utils::download.file("https://github.com/alexlusco/Blog-Datasets/blob/master/Toronto_Star_Inequality_Injustice_Laid_Bare_Aug2020.pdf", here("Extract text from PDF files", "ART - Parsing your .pdfs in R", "data", "Toronto_Star_Inequality_Injustice_Laid_Bare_Aug2020.pdf"), mode = "wb")
 
-# Create a vector which contains all the pdf document
-text <- pdf_text(here("ART - How to Extract and Clean Data From PDF Files in R", "data", "71_PV.62.pdf"))
+
+downloader::download("https://github.com/Huitziii/crispy-pdf/raw/master/71_PV.62.pdf", "gino.pdf", mode = "wb")
+
+
+
 ```
 
 # Get the pdf document using quanteda
