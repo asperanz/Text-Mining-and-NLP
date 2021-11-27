@@ -1,0 +1,44 @@
+---
+title: "Parsing your .pdfs in R"
+author: "Alessandro Speranza"
+date: "11/2/2021"
+output:
+  html_document:
+    keep_md: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+#text_mining
+#extract_data_from_pdf
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cash = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(pdftools)
+library(stringr)
+```
+
+# Get the pdf document using pdftools
+```{r get_pdf_doc}
+
+# Download from the web the pdf document
+utils::download.file("https://github.com/Huitziii/crispy-pdf/raw/master/71_PV.62.pdf", here("ART - How to Extract and Clean Data From PDF Files in R", "data", "71_PV.62.pdf"), mode = "wb")
+
+# Create a vector which contains all the pdf document
+text <- pdf_text(here("ART - How to Extract and Clean Data From PDF Files in R", "data", "71_PV.62.pdf"))
+```
+
+# Get the pdf document using quanteda
+```{r get_pdf_doc}
+
+textq <- readtext(here("ART - How to Extract and Clean Data From PDF Files in R", "data", "71_PV.62.pdf"))
+
+```
+
